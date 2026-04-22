@@ -62,6 +62,15 @@ def is_ignored(rel_path, patterns, is_dir=False):
                 
     return False
 
+def format_size(size_in_bytes):
+    """Форматирует размер файла в удобочитаемый вид."""
+    if size_in_bytes < 1024:
+        return f"{size_in_bytes} Б"
+    elif size_in_bytes < 1024 * 1024:
+        return f"{size_in_bytes / 1024:.2f} КБ"
+    else:
+        return f"{size_in_bytes / (1024 * 1024):.2f} МБ"
+
 def main():
     # Получаем путь к папке, в которой лежит сам этот скрипт
     base_dir = os.path.dirname(os.path.abspath(__file__))
@@ -71,6 +80,10 @@ def main():
     # Загружаем правила игнорирования
     ignore_patterns = load_ignore_patterns(base_dir)
 
+    # Счетчики статистики
+    files_collected = 0
+    total_lines = 0
+
     # Открываем итоговый файл для записи
     with open(output_path, 'w', encoding='utf-8') as outfile:
         
@@ -78,7 +91,7 @@ def main():
         for root, dirs, files in os.walk(base_dir):
             
             # Фильтруем папки на лету, чтобы не сканировать содержимое игнорируемых директорий
-            valid_dirs = []
+            valid_dirs =[]
             for d in dirs:
                 dir_rel_path = os.path.relpath(os.path.join(root, d), base_dir)
                 if not is_ignored(dir_rel_path, ignore_patterns, is_dir=True):
@@ -102,18 +115,27 @@ def main():
                     with open(filepath, 'r', encoding='utf-8') as infile:
                         content = infile.read()
                     
-                    # Записываем отметку начала
-                    outfile.write(f"---------- File: {relative_path} ----------\n\n")
+                    # Формируем блоки текста для записи
+                    header = f"---------- File: {relative_path} ----------\n\n"
+                    footer = f"\n---------- EOF: {relative_path} ----------\n\n\n"
                     
-                    # Записываем содержимое файла
+                    # Записываем всё в файл и одновременно считаем строки (\n)
+                    outfile.write(header)
+                    total_lines += header.count('\n')
+                    
                     outfile.write(content)
+                    total_lines += content.count('\n')
                     
                     # Если файл не заканчивается переносом строки, добавляем его
                     if not content.endswith('\n'):
                         outfile.write('\n')
+                        total_lines += 1
                         
-                    # Записываем отметку конца
-                    outfile.write(f"\n---------- EOF: {relative_path} ----------\n\n\n")
+                    outfile.write(footer)
+                    total_lines += footer.count('\n')
+                    
+                    # Увеличиваем счетчик обработанных файлов
+                    files_collected += 1
                     
                 except UnicodeDecodeError:
                     # Если файл не читается как текст (например, это картинка .png)
@@ -121,7 +143,15 @@ def main():
                 except Exception as e:
                     print(f"Ошибка при чтении файла {relative_path}: {e}")
 
-    print(f"\nГотово! Все файлы собраны в {OUTPUT_FILE}")
+    # Вычисляем итоговый размер созданного файла
+    final_size_bytes = os.path.getsize(output_path)
+    
+    # Вывод результатов
+    print("\n" + "="*45)
+    print(f"Готово! Все файлы ({files_collected} шт.) собраны в {OUTPUT_FILE}")
+    print(f"Количество строк: {total_lines}")
+    print(f"Размер файла:     {format_size(final_size_bytes)}")
+    print("="*45)
 
 if __name__ == '__main__':
     main()
