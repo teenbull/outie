@@ -148,7 +148,8 @@ def main():
     
     # Вывод результатов
     print("\n" + "="*45)
-    print(f"Готово! Все файлы ({files_collected} шт.) собраны в {OUTPUT_FILE}")
+    print("Готово!")
+    print(f"Все файлы ({files_collected} шт.) собраны в {OUTPUT_FILE}")
     print(f"Количество строк: {total_lines}")
     print(f"Размер файла:     {format_size(final_size_bytes)}")
     print("="*45)
